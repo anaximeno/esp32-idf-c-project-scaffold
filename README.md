@@ -3,16 +3,16 @@
 
 # ESP32 Project Scaffold
 
-A ready-to-clone starting point for ESP-IDF projects, pinned to a specific IDF version and wired up so `cd`-ing into the folder is all it takes to get a working toolchain.
+A ready-to-clone starting point for ESP-IDF projects, pinned to a specific IDF version and wired up with a single script to get a working toolchain.
 
-> **This scaffold targets Linux development hosts only.** The setup below (`eim`, `direnv`, the paths in `.envrc`/`eim_config.toml`) assumes a Linux shell. It has not been adapted for macOS or Windows — see the [Windows](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/windows-setup.html) / [macOS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/macos-setup.html) setup guides if you need those instead.
+> **This scaffold targets Linux development hosts only.** The setup below (`eim`, the paths in `activate.sh`/`eim_config.toml`) assumes a Linux shell. It has not been adapted for macOS or Windows — see the [Windows](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/windows-setup.html) / [macOS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/macos-setup.html) setup guides if you need those instead.
 
 ## How this scaffold works
 
 Instead of activating ESP-IDF by hand in every new shell (`. $HOME/esp/esp-idf/export.sh`), this project:
 
 1. Installs and manages ESP-IDF versions with **[eim](https://docs.espressif.com/projects/idf-im-ui/en/latest/cli_commands.html)** (the Espressif IDF Installation Manager CLI), instead of the old `install.sh`/manual clone workflow.
-2. Uses **[direnv](https://direnv.net/)** so the correct IDF environment is activated automatically whenever you `cd` into the project, and unloaded when you leave it.
+2. Ships an [activate.sh](activate.sh) that you `source` once per shell session to put the correct IDF environment on `PATH`.
 
 ## 1. Install prerequisites
 
@@ -20,9 +20,7 @@ Before installing ESP-IDF itself, install the OS packages ESP-IDF needs to build
 
 - [ESP-IDF Linux Setup](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/linux-setup.html)
 
-Also install `direnv` from your distro's package manager (e.g. `sudo apt install direnv`, `sudo dnf install direnv`, `sudo pacman -S direnv`), then hook it into your shell by adding the appropriate line to your shell rc file, as described in the [direnv installation docs](https://direnv.net/docs/hook.html) (e.g. `eval "$(direnv hook bash)"` for bash, or the `zsh`/`fish` equivalent).
-
-Finally, install `eim` itself by following Espressif's IDF Installation Manager documentation. Once `eim` is on your `PATH`, everything else in this section is driven by it.
+Install `eim` itself by following Espressif's IDF Installation Manager documentation. Once `eim` is on your `PATH`, everything else in this section is driven by it.
 
 ## 2. Install the pinned ESP-IDF version
 
@@ -39,29 +37,23 @@ This downloads ESP-IDF and its toolchain into `$HOME/.espressif` and writes an `
 - `eim list` — list installed IDF versions.
 - `eim install -i <version> -p $HOME/.espressif` — install another IDF version alongside this one.
 - `eim select` — pick which installed version is the current default.
-- `eim run "<command>"` — run a single command (e.g. `idf.py build`) against a chosen IDF install without changing your default/current activation. Handy for building this project against a version other than the one `.envrc` activates.
+- `eim run "<command>"` — run a single command (e.g. `idf.py build`) against a chosen IDF install without changing your default/current activation. Handy for building this project against a version other than the one `activate.sh` activates.
 
-## 3. Auto-activate the environment with direnv
+## 3. Activate the environment
 
-The project ships an [.envrc](.envrc) that sources the activation script `eim` generated for v6.0.2:
-
-```sh
-source ~/.espressif/tools/activate_idf_v6.0.2.sh
-```
-
-The first time you enter the project directory, direnv will refuse to load it until you approve it:
+The project ships an [activate.sh](activate.sh) that sources the activation script `eim` generated for v6.0.2 and then runs `install.sh` if needed:
 
 ```sh
-direnv allow
+source ./activate.sh
 ```
 
-From then on, `idf.py`, `xtensa-esp32s3-elf-gcc`, etc. are automatically on `PATH` whenever your shell is inside this directory, and cleared once you leave it — no manual activation, no leaking the toolchain into unrelated shells.
+**It must be `source`d, not executed** (`./activate.sh` on its own runs it in a subshell and none of the environment changes reach your terminal). Run this once per new shell session before building — it puts `idf.py`, `xtensa-esp32s3-elf-gcc`, etc. on `PATH` for that shell only; opening a new terminal means sourcing it again.
 
-If you bump the pinned IDF version later, update the version string in `.envrc` to match the new `activate_idf_v<version>.sh` script and run `direnv allow` again.
+If you bump the pinned IDF version later, update `PROJECT_IDF_VERSION` in [activate.sh](activate.sh) to match the new `activate_idf_v<version>.sh` script.
 
 ## 4. Build, flash, monitor
 
-With the environment activated (via direnv, or `eim run "..."`):
+With the environment activated (via `source ./activate.sh`, or `eim run "..."`):
 
 ```sh
 idf.py set-target esp32s3   # only needed once, or when switching target chips
@@ -90,8 +82,8 @@ If you switch `IDF_TARGET` or add/remove components, rerun `idf.py build` so the
 
 ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide a set of directives and instructions describing the project's source files and targets (executable, library, or both).
 
-```
-├── .envrc                      direnv: sources the eim-generated IDF activation script
+```txt
+├── activate.sh                 sources the eim-generated IDF activation script (run: `source ./activate.sh`)
 ├── .clangd                     clangd: points at build/compile_commands.json
 ├── .vscode/
 │   ├── c_cpp_properties.json   cpptools: points at build/compile_commands.json
@@ -111,7 +103,7 @@ For more information on the structure and contents of ESP-IDF projects, see the 
 ## Using this as a template
 
 - Rename the `project()` call in [CMakeLists.txt](CMakeLists.txt) and adjust `main/`'s sources/`PRIV_REQUIRES` for your app.
-- Bump the pinned version by installing a new IDF release with `eim`, updating the source line in `.envrc`, and running `direnv allow`.
+- Bump the pinned version by installing a new IDF release with `eim` and updating `PROJECT_IDF_VERSION` in [activate.sh](activate.sh).
 - Commit `sdkconfig.defaults` for settings your project always needs; leave the generated `sdkconfig` git-ignored so per-board/per-dev tweaks (COM port config aside, which lives outside sdkconfig anyway) don't cause noisy diffs.
 
 ## Troubleshooting
@@ -121,9 +113,9 @@ For more information on the structure and contents of ESP-IDF projects, see the 
     * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
     * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
 
-* `direnv: error .envrc is blocked`
+* `idf.py: command not found` after sourcing
 
-    * Run `direnv allow` from the project root after cloning, or any time you edit `.envrc`.
+    * Make sure you ran `source ./activate.sh` (with a leading `source`/`.`), not `./activate.sh`. Executing it directly runs it in a subshell, so none of the environment changes reach your terminal.
 
 * Editor doesn't resolve ESP-IDF headers
 
