@@ -3,6 +3,8 @@
 
 # ESP32 Project Scaffold
 
+Source: https://github.com/scopemachine/esp32-idf-c-project-scaffold
+
 A ready-to-clone starting point for ESP-IDF projects, pinned to a specific IDF version and wired up with a single script to get a working toolchain.
 
 > **This scaffold targets Linux development hosts only.** The setup below (`eim`, the paths in `activate.sh`/`eim_config.toml`) assumes a Linux shell. It has not been adapted for macOS or Windows — see the [Windows](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/windows-setup.html) / [macOS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/macos-setup.html) setup guides if you need those instead.
